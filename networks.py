@@ -123,15 +123,15 @@ class Generator_Pose(nn.Module):
             #print("112")
             theta = torch.empty([z.shape[0], 2, 3]).zero_().cuda()
             output = self.thetalization(z)
-            angle = self.anglelization(output) * math.pi
-            scale = self.scalelization(output)
+            angle = nn.Tanh()(self.anglelization(output)) * math.pi
+            scale = nn.Softplus()(self.scalelization(output))
             # print(scale.shape)
             # print(torch.cos(angle).shape)
             theta[:, 0, 0] = (scale * torch.cos(angle))[:, 0]
             theta[:, 0, 1] = (scale * torch.sin(angle))[:, 0]
             theta[:, 1, 0] = -1.0 * (scale * torch.sin(angle))[:, 0]
             theta[:, 1, 1] = (scale * torch.cos(angle))[:, 0]
-            theta[:, :, 2] = self.shiftlization(output)
+            theta[:, :, 2] = nn.Tanh()(self.shiftlization(output))
         return theta
 
 
