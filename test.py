@@ -8,6 +8,7 @@ class myRNN(nn.Module):
         super().__init__()
         self.lstm_hidden = 256
         self.z_dim = 16
+
         self.bs = 2
 
         self.rnn = nn.LSTMCell(input_size=self.z_dim,
@@ -27,7 +28,10 @@ class myRNN(nn.Module):
 
 
 if __name__ == "__main__":
-    RNN = myRNN()
-    z = torch.empty([3, 2, 16]).normal_()
-    output = RNN(z)
-    print(output)
+    rnn = nn.LSTM(10, 20, 1)
+    input = torch.randn(5, 3, 10)
+    h0 = torch.randn(1, 3, 20)
+    c0 = torch.randn(1, 3, 20)
+    output, (hn, cn) = rnn(input, (h0, c0))
+    print(output.shape)
+    ##[5,3,20]

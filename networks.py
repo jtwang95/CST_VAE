@@ -195,19 +195,17 @@ class Encoder_Pose(nn.Module):
             nn.LeakyReLU(LEAKYRELU_SLOPE), nn.Conv2d(128, 128, 4, 1),
             nn.BatchNorm2d(128), nn.LeakyReLU(LEAKYRELU_SLOPE),
             nn.Conv2d(128, 256, 4, 2), nn.BatchNorm2d(256),
-            nn.LeakyReLU(LEAKYRELU_SLOPE), nn.Conv2d(256, 1024, 4, 1),
-            nn.BatchNorm2d(1024), nn.LeakyReLU(LEAKYRELU_SLOPE), Flatten())
+            nn.LeakyReLU(LEAKYRELU_SLOPE), nn.Conv2d(256, 128, 4, 1),
+            nn.BatchNorm2d(128), nn.LeakyReLU(LEAKYRELU_SLOPE), Flatten())
 
-        self.z_poselization = nn.Sequential(nn.Linear(1024, 512),
-                                            nn.BatchNorm1d(512), nn.ReLU(True),
-                                            nn.Linear(512, 256),
+        self.z_poselization = nn.Sequential(nn.Linear(128, 256),
                                             nn.BatchNorm1d(256), nn.ReLU(True),
                                             nn.Linear(256, self.z_dim * 2))
 
     def forward(self, X):
         output = self.localization(X)
         output = self.z_poselization(output)
-        return output[:, :self.z_dim], output[:, self.z_dim:]
+        return output
 
 
 class Encoder_Style(nn.Module):
@@ -235,39 +233,20 @@ class Encoder_Style(nn.Module):
         output = self.z_stylization(X)
         return output[:, self.z_dim:], output[:, :self.z_dim]
 
+class LSTM_LatentPose(nn.Module):
+    def __init__(self,input_size=256,output_size=256,hidden_size=256):
+        super().__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+        self.hidden_size = hidden_size
+        self.rnn = nn.LSTMCell(input_size=self.input_size,hidden_size=self.hidden_size)
+        self.rnn_linear = nn.Sequential(nn.Linear(self.hidden_size,self.output_size))
 
-# class Generator_Pose_s1r1sh2(nn.Module):
-#     def __init__(self, image_channel=3, canvas_size=64, z_dim=128):
-#         super().__init__()
-#         self.canvas_size = canvas_size
-#         self.z_dim = z_dim
-#         self.image_channel = image_channel
-
-#         # Regressor for the 3 * 2 affine matrix
-#         self.thetalization = nn.Sequential(nn.Linear(self.z_dim, 128),
-#                                            nn.BatchNorm1d(128), nn.ReLU(True),
-#                                            nn.Linear(128, 256),
-#                                            nn.BatchNorm1d(256), nn.ReLU(True),
-#                                            nn.Linear(256, 4))
-
-#         # Initialize the weights/bias with identity transformation
-#         self.thetalization[-1].weight.data.mul_(0.001)
-#         self.thetalization[-1].bias.data.copy_(
-#             torch.tensor([0, 0, 0, 0], dtype=torch.float))
-#         self.shift_regularization = nn.Sequential(nn.Tanh())
-#         self.rotate_regularization = nn.Sequential(nn.Tanh())
-
-#     def forward(self, z):
-#         theta = torch.empty([z.shape[0], 2, 3]).zero_()
-#         output = self.thetalization(z)
-#         angle = self.rotate_regularization(output[:, 1]) * math.pi
-#         scale = output[:, 0]
-#         theta[:, 0, 0] = scale * torch.cos(angle)
-#         theta[:, 0, 1] = scale * torch.sin(angle)
-#         theta[:, 1, 0] = -1.0 * scale * torch.sin(angle)
-#         theta[:, 1, 1] = scale * torch.cos(angle)
-#         theta[:, :, 2] = self.shift_regularization(output[:, 2:3])
-#         return theta
+    def forward(self,z_x,state):
+        state = self.rnn(z_x,state)
+        output = self.rnn_linear(state[0])
+        return output,state
+        
 
 if __name__ == "__main__":
     # G_pose = Generator_Pose()

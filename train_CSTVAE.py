@@ -12,7 +12,7 @@ from data.datasets import MultiMnistDataset
 from Torture.dataset import CLEVRDataset
 from VAE_model import *
 
-DATA_NAME = '3'
+DATA_NAME = '2'
 EVALUATE_EPOCH = 1
 SAVE_EPOCH = 10
 EPOCH_TOTAL = 300
@@ -64,6 +64,7 @@ flags.DEFINE_argument("-ns", "-num_slot", "--num_slot", type=int, default=2)
 flags.DEFINE_argument("-model", "--model", default="cst_vae")
 flags.DEFINE_argument("-mode", "--mode", default="train")
 flags.DEFINE_argument("-oldmodel", "--oldmodel", default="")
+flags.DEFINE_boolean("-geco", "--geco", default=False)
 FLAGS = flags.FLAGS
 
 logger, MODELS_FOLDER, SUMMARIES_FOLDER = save_context(__file__, FLAGS, config)
@@ -98,7 +99,16 @@ iterator_length = len(dataloader_train)
 logger.info("{} iterations per Epoch, check it!".format(iterator_length))
 
 device = torch.device("cuda:0")
-if FLAGS.model in ['cst_vae']:
+if FLAGS.model in ['cst_vae_lstm']:
+    logger.info("Using CST_VAE_LSTM model!")
+    model = CST_VAE_lstm(num_slots=FLAGS.num_slot,
+                         canvas_size=FLAGS.image_size,
+                         image_channel=IMAGE_CHANNEL,
+                         beta=0.5,
+                         gamma=0.5,
+                         theta_parametrization=FLAGS.theta_parametrization,
+                         geco=FLAGS.geco).to(device)
+elif FLAGS.model in ['cst_vae']:
     model = CST_VAE(
         num_slots=FLAGS.num_slot,
         canvas_size=FLAGS.image_size,
@@ -201,8 +211,10 @@ for epoch in range(EPOCH_TOTAL):  # loop over the dataset multiple times
     for param_group in optimizer.param_groups:
         possible_lr.append(param_group['lr'])
     lr_scheduler.step()
-    logger.info('[{}] train loss: {:.4f}, learning rate: {}'.format(
-        epoch + 1, running_loss / iterator_length, str(possible_lr)))
+    logger.info(
+        '[{}] train loss: {:.4f}, learning rate: {}, beta: {}, loss_LLK: {}'.
+        format(epoch + 1, running_loss / iterator_length, str(possible_lr),
+               model.beta, model.loss_LLK / 64**2))
 
     if epoch % SAVE_EPOCH == 0 or epoch == EPOCH_TOTAL - 1:
         torch.save(model.state_dict(),
