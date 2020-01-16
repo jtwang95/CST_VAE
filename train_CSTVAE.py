@@ -12,7 +12,7 @@ from data.datasets import MultiMnistDataset
 from Torture.dataset import CLEVRDataset
 from VAE_model import *
 
-DATA_NAME = '2'
+DATA_NAME = '3'
 EVALUATE_EPOCH = 1
 SAVE_EPOCH = 10
 EPOCH_TOTAL = 300
@@ -157,12 +157,12 @@ def visualize_gen(name):
 
     with torch.no_grad():
         model.eval()
-        visualize_img = model.generation(bs=10)
+        visualize_img = model.generation(bs=20)
         plot_image(visualize_img,
                    os.path.join(SUMMARIES_FOLDER,
                                 base_format.format(name, "generation")),
-                   shape=[2, 5],
-                   figsize=[5 * 5, 2 * 5])
+                   shape=[2, 10],
+                   figsize=[10 * 5, 2 * 5])
         model.train()
 
 
@@ -212,9 +212,10 @@ for epoch in range(EPOCH_TOTAL):  # loop over the dataset multiple times
         possible_lr.append(param_group['lr'])
     lr_scheduler.step()
     logger.info(
-        '[{}] train loss: {:.4f}, learning rate: {}, beta: {}, loss_LLK: {}'.
-        format(epoch + 1, running_loss / iterator_length, str(possible_lr),
-               model.beta, model.loss_LLK / 64**2))
+        '[{}] train loss: {:.4f}, learning rate: {}, beta: {}, loss_LLK_pixel: {}, loss_KLD_pixel: {}, loss: {}'
+        .format(epoch + 1, running_loss / iterator_length, str(possible_lr),
+                model.beta, model.loss_LLK / 64**2, -model.loss_KLD / 64**2,
+                -1.0 * (model.loss_KLD + model.loss_LLK)))
 
     if epoch % SAVE_EPOCH == 0 or epoch == EPOCH_TOTAL - 1:
         torch.save(model.state_dict(),

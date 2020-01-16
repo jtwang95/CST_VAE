@@ -203,9 +203,9 @@ class CST_VAE_lstm(nn.Module):
         self.geco = geco
         self.beta = 1.0  ## for geco calculation
         self.geco_lr = 1e-5 * 64**2 / self.canvas_size**2
-        self.geco_speedup = 10.0
+        self.geco_speedup = None
         self.geco_alpha = 0.99
-        self.goal_pixel = -0.35
+        self.goal_pixel = -0.30  ## goal per pixel
         self.c_ema = None  ## store for geco calculation
 
         # basic modules
@@ -369,13 +369,17 @@ class CST_VAE_lstm(nn.Module):
         X = torch.zeros(
             [bs, self.image_channel, self.canvas_size,
              self.canvas_size]).cuda()
-        z_pose_pre = torch.empty([bs, self.z_dim]).normal_().cuda()
         ## state for lstm
         state = None
         for k in range(self.num_slots):
-            z_mu_logvar_pose_k, state = self.LSTM_pzPose(z_pose_pre, state)
-            z_pose_k = reparameterization(z_mu_logvar_pose_k[:, :self.z_dim],
-                                          z_mu_logvar_pose_k[:, self.z_dim:])
+            if k == 0:
+                z_pose_k = torch.empty([bs, self.z_dim]).normal_().cuda()
+            else:
+                z_mu_logvar_pose_k, state = self.LSTM_pzPose(z_pose_pre, state)
+                z_pose_k = reparameterization(
+                    z_mu_logvar_pose_k[:, :self.z_dim],
+                    z_mu_logvar_pose_k[:, self.z_dim:])
+            z_pose_pre = z_pose_k
             z_style_k = torch.empty([bs, self.z_dim]).normal_().cuda()
             theta_k = self.G_pose(z_pose_k)
             c_k, alpha_k = self.G_style(z_style_k)
