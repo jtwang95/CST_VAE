@@ -205,7 +205,7 @@ class CST_VAE_lstm(nn.Module):
         self.geco_lr = 1e-5 * 64**2 / self.canvas_size**2
         self.geco_speedup = None
         self.geco_alpha = 0.99
-        self.goal_pixel = -0.30  ## goal per pixel
+        self.goal_pixel = -0.35  ## goal per pixel
         self.c_ema = None  ## store for geco calculation
 
         # basic modules
@@ -322,7 +322,7 @@ class CST_VAE_lstm(nn.Module):
         ## state for lstm
         state = None
         z_mu_pose_prior = [torch.zeros_like(z_pose[0])]
-        z_logvar_pose_prior = [torch.ones_like(z_pose[0])]
+        z_logvar_pose_prior = [torch.zeros_like(z_pose[0])]
         for k in range(1, self.num_slots):
             z_pose_prior, state = self.LSTM_pzPose(z_pose[k - 1], state)
             z_mu_pose_prior.append(z_pose_prior[:, :self.z_dim])

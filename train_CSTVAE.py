@@ -12,7 +12,7 @@ from data.datasets import MultiMnistDataset
 from Torture.dataset import CLEVRDataset
 from VAE_model import *
 
-DATA_NAME = '3'
+DATA_NAME = '2'
 EVALUATE_EPOCH = 1
 SAVE_EPOCH = 10
 EPOCH_TOTAL = 300
